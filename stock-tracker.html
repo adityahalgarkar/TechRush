@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Tracker Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-gradient@0.5.1/dist/chartjs-plugin-gradient.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #4338ca;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --card-bg: #ffffff;
+            --bg-color: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stock-card {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border-left: 4px solid transparent;
+        }
+        
+        .stock-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stock-card.positive {
+            border-left-color: var(--success-color);
+        }
+        
+        .stock-card.negative {
+            border-left-color: var(--danger-color);
+        }
+        
+        .positive {
+            color: var(--success-color);
+        }
+        
+        .negative {
+            color: var(--danger-color);
+        }
+        
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #cbd5e1;
+        }
+        
+        .header-gradient {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        }
+        
+        .time-range-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .time-range-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .time-range-btn:hover:not(.active) {
+            background-color: #e2e8f0;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+    </style>
+</head>
+<body class="animate__animated animate__fadeIn animate__faster">
+    <div class="min-h-screen">
+        <header class="header-gradient text-white py-8 shadow-lg relative overflow-hidden">
+            <!-- Background pattern elements for visual interest -->
+            <div class="absolute top-0 left-0 w-full h-full opacity-10">
+                <div class="absolute top-10 left-10 w-20 h-20 rounded-full bg-white"></div>
+                <div class="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-white"></div>
+                <div class="absolute top-1/2 left-1/4 w-16 h-16 rounded-full bg-white"></div>
+            </div>
+            
+            <div class="container mx-auto px-4 relative z-10">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="flex items-center mb-6 md:mb-0 animate__animated animate__fadeInLeft">
+                        <div class="mr-4 bg-white bg-opacity-20 p-3 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold">Stock Tracker Pro</h1>
+                            <p class="text-indigo-200 text-sm">Real-time market insights</p>
+                        </div>
+                    </div>
+                    
+                    <div class="w-full md:w-2/5 animate__animated animate__fadeInRight">
+                        <div class="relative group">
+                            <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-300 to-purple-300 rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-300"></div>
+                            <div class="relative">
+                                <input id="stockSearch" type="text" placeholder="Search stock symbol (e.g., AAPL, MSFT)" 
+                                    class="w-full py-3 px-5 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-md"
+                                    list="stockSuggestions">
+                                <datalist id="stockSuggestions">
+                                    <option value="AAPL">Apple Inc.</option>
+                                    <option value="MSFT">Microsoft Corporation</option>
+                                    <option value="GOOGL">Alphabet Inc.</option>
+                                    <option value="AMZN">Amazon.com Inc.</option>
+                                    <option value="TSLA">Tesla Inc.</option>
+                                    <option value="META">Meta Platforms Inc.</option>
+                                    <option value="NVDA">NVIDIA Corporation</option>
+                                    <option value="JPM">JPMorgan Chase & Co.</option>
+                                    <option value="V">Visa Inc.</option>
+                                    <option value="WMT">Walmart Inc.</option>
+                                    <option value="DIS">The Walt Disney Company</option>
+                                    <option value="NFLX">Netflix Inc.</option>
+                                    <option value="KO">The Coca-Cola Company</option>
+                                    <option value="PEP">PepsiCo Inc.</option>
+                                    <option value="INFY">Infosys Limited</option>
+                                    <option value="ADBE">Adobe Inc.</option>
+                                    <option value="INTC">Intel Corporation</option>
+                                    <option value="IBM">International Business Machines</option>
+                                    <option value="BA">Boeing Co.</option>
+                                    <option value="NKE">Nike Inc.</option>
+                                </datalist>
+                                <button id="searchButton" class="absolute right-0 top-0 h-full px-5 bg-indigo-700 text-white rounded-r-lg hover:bg-indigo-800 transition-all duration-300 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-10">
+            <div id="loadingMessage" class="text-center py-16 text-gray-500 text-lg animate__animated animate__fadeIn">
+                <div class="relative w-20 h-20 mx-auto mb-6">
+                    <div class="absolute top-0 left-0 w-full h-full border-4 border-indigo-200 rounded-full opacity-25"></div>
+                    <div class="absolute top-0 left-0 w-full h-full border-4 border-t-indigo-600 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+                </div>
+                <p class="font-medium">Loading stock data...</p>
+                <p class="text-sm text-gray-400 mt-2">Fetching the latest market information</p>
+            </div>
+
+            <div id="errorMessage" class="hidden animate__animated animate__fadeIn" role="alert">
+                <div class="bg-red-50 border-l-4 border-red-500 rounded-lg shadow-md p-6 mb-8">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 bg-red-100 rounded-full p-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-red-800">Error</h3>
+                            <p id="errorText" class="text-red-700 mt-1">Unable to fetch stock data. Please try again later.</p>
+                            <button class="mt-3 text-sm font-medium text-red-600 hover:text-red-800 transition-colors duration-300 flex items-center" onclick="window.location.reload()">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                </svg>
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stockContent" class="hidden animate__animated animate__fadeIn">
+                <!-- Stock Header -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white rounded-xl p-6 shadow-md glass-card">
+                    <div class="animate__animated animate__fadeInUp">
+                        <h2 id="stockName" class="text-3xl font-bold text-gray-800 flex items-center">Apple Inc. (AAPL)</h2>
+                        <p id="lastUpdated" class="text-sm text-gray-500 mt-1">Last updated: <span class="font-medium"></span></p>
+                    </div>
+                    <div class="mt-4 md:mt-0 animate__animated animate__fadeInUp animate__delay-1s">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span id="refreshStatus" class="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">Auto-refresh: <span class="font-medium text-indigo-600">ON</span></span>
+                            <button id="refreshToggle" class="btn-secondary px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd" />
+                                </svg>
+                                Turn Off
+                            </button>
+                            <button id="refreshNow" class="btn-primary px-4 py-1 rounded-full text-sm font-medium flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                </svg>
+                                Refresh Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Price and Chart -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                    <div class="lg:col-span-2 animate__animated animate__fadeInUp">
+                        <div class="bg-white rounded-xl shadow-md p-6 h-full glass-card hover:shadow-lg transition-shadow duration-300">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                                <h3 class="text-xl font-semibold text-gray-800 flex items-center mb-3 sm:mb-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                                    </svg>
+                                    Price History
+                                </h3>
+                                <div class="flex space-x-2 bg-gray-100 p-1 rounded-lg">
+                                    <button class="time-range-btn active px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-300" data-range="1h">1H</button>
+                                    <button class="time-range-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-300" data-range="1d">1D</button>
+                                    <button class="time-range-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-300" data-range="1w">1W</button>
+                                    <button class="time-range-btn px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-300" data-range="1m">1M</button>
+                                </div>
+                            </div>
+                            <div class="h-80 relative">
+                                <!-- Chart overlay for loading effect -->
+                                <div class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 hidden" id="chartLoading">
+                                    <div class="animate-pulse flex space-x-4">
+                                        <div class="h-3 w-3 bg-indigo-400 rounded-full"></div>
+                                        <div class="h-3 w-3 bg-indigo-500 rounded-full"></div>
+                                        <div class="h-3 w-3 bg-indigo-600 rounded-full"></div>
+                                    </div>
+                                </div>
+                                <canvas id="stockChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="animate__animated animate__fadeInUp animate__delay-1s">
+                        <div class="bg-white rounded-xl shadow-md p-6 h-full glass-card hover:shadow-lg transition-shadow duration-300">
+                            <h3 class="text-xl font-semibold text-gray-800 flex items-center mb-6">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                                Key Metrics
+                            </h3>
+                            <div class="space-y-5">
+                                <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+                                    <span class="text-gray-600 font-medium">Current Price</span>
+                                    <span id="currentPrice" class="text-2xl font-bold pulse">$0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+                                    <span class="text-gray-600 font-medium">Change</span>
+                                    <div class="flex items-center">
+                                        <span id="priceChange" class="font-semibold text-lg">$0.00</span>
+                                        <span id="percentChange" class="ml-2 px-3 py-1 rounded-full text-sm font-medium">0.00%</span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+                                    <span class="text-gray-600 font-medium">Day Range</span>
+                                    <div class="relative w-24 h-2 bg-gray-200 rounded-full">
+                                        <div class="absolute left-0 top-0 h-full w-1/2 bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full"></div>
+                                        <span id="dayRange" class="absolute -bottom-6 left-0 right-0 text-center text-sm font-medium">$0.00 - $0.00</span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+                                    <span class="text-gray-600 font-medium">Volume</span>
+                                    <span id="volume" class="font-medium text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg">0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600 font-medium">Market Cap</span>
+                                    <span id="marketCap" class="font-medium text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg">$0.00B</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watchlist -->
+                <div class="mb-10 animate__animated animate__fadeInUp animate__delay-2s">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-white rounded-xl p-6 shadow-md glass-card">
+                        <div class="flex items-center mb-4 sm:mb-0">
+                            <div class="bg-indigo-100 p-2 rounded-lg mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800">My Watchlist</h3>
+                                <p class="text-sm text-gray-500">Track your favorite stocks</p>
+                            </div>
+                        </div>
+                        <button id="addToWatchlist" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add to Watchlist
+                        </button>
+                    </div>
+                    <div id="watchlistContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <!-- Watchlist items will be added here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-10 relative overflow-hidden">
+            <!-- Background pattern elements for visual interest -->
+            <div class="absolute top-0 left-0 w-full h-full opacity-5">
+                <div class="absolute top-10 right-10 w-20 h-20 rounded-full bg-white"></div>
+                <div class="absolute bottom-10 left-10 w-32 h-32 rounded-full bg-white"></div>
+            </div>
+            
+            <div class="container mx-auto px-4 relative z-10">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+                    <div class="flex items-center mb-6 md:mb-0">
+                        <div class="mr-3 bg-white bg-opacity-10 p-2 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold">Stock Tracker Pro</h3>
+                            <p class="text-sm text-gray-400">Real-time market insights</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-700 pt-8 text-center">
+                    <p class="text-sm">This is a demo application. Stock data is simulated for demonstration purposes.</p>
+                    <p class="text-xs mt-4 text-gray-500">© 2023 Stock Tracker Pro. All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const stockSearch = document.getElementById('stockSearch');
+            const searchButton = document.getElementById('searchButton');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            const stockContent = document.getElementById('stockContent');
+            const stockName = document.getElementById('stockName');
+            const lastUpdated = document.getElementById('lastUpdated').querySelector('span');
+            const currentPrice = document.getElementById('currentPrice');
+            const priceChange = document.getElementById('priceChange');
+            const percentChange = document.getElementById('percentChange');
+            const dayRange = document.getElementById('dayRange');
+            const volume = document.getElementById('volume');
+            const marketCap = document.getElementById('marketCap');
+            const refreshToggle = document.getElementById('refreshToggle');
+            const refreshStatus = document.getElementById('refreshStatus').querySelector('span');
+            const refreshNow = document.getElementById('refreshNow');
+            const addToWatchlist = document.getElementById('addToWatchlist');
+            const watchlistContainer = document.getElementById('watchlistContainer');
+            const timeRangeButtons = document.querySelectorAll('.time-range-btn');
+            const chartLoading = document.getElementById('chartLoading');
+            
+            // Add animation classes to elements when they load
+            setTimeout(() => {
+                // Add subtle animations to key elements
+                document.querySelectorAll('.glass-card').forEach((card, index) => {
+                    card.classList.add('animate__animated', 'animate__fadeIn');
+                    card.style.animationDelay = `${index * 0.1}s`;
+                });
+                
+                // Add hover effects to interactive elements
+                addHoverEffects();
+            }, 500);
+            
+            // Function to add hover effects
+            function addHoverEffects() {
+                // Add pulse effect to buttons on hover
+                const interactiveButtons = [searchButton, refreshNow, refreshToggle, addToWatchlist];
+                
+                interactiveButtons.forEach(button => {
+                    if (button) {
+                        button.addEventListener('mouseenter', function() {
+                            this.classList.add('animate__animated', 'animate__pulse', 'animate__faster');
+                        });
+                        
+                        button.addEventListener('mouseleave', function() {
+                            this.classList.remove('animate__animated', 'animate__pulse', 'animate__faster');
+                        });
+                    }
+                });
+                
+                // Add hover effect to search input
+                stockSearch.addEventListener('focus', function() {
+                    this.parentElement.parentElement.classList.add('scale-105');
+                    this.parentElement.classList.add('shadow-lg');
+                });
+                
+                stockSearch.addEventListener('blur', function() {
+                    this.parentElement.parentElement.classList.remove('scale-105');
+                    this.parentElement.classList.remove('shadow-lg');
+                });
+            }
+
+            // Chart setup with gradient background
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            
+            // Create gradient for chart background
+            const createGradient = (color) => {
+                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                if (color === 'green') {
+                    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+                    gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+                    return gradient;
+                } else if (color === 'red') {
+                    gradient.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
+                    gradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
+                    return gradient;
+                } else {
+                    gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)');
+                    gradient.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
+                    return gradient;
+                }
+            };
+            
+            let stockChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Stock Price',
+                        data: [],
+                        borderColor: 'rgb(79, 70, 229)',
+                        backgroundColor: createGradient('default'),
+                        borderWidth: 2.5,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(17, 24, 39, 0.8)',
+                            titleFont: {
+                                family: '"Poppins", sans-serif',
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                family: '"Poppins", sans-serif',
+                                size: 13
+                            },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `$${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: '"Poppins", sans-serif',
+                                    size: 11
+                                },
+                                color: 'rgba(107, 114, 128, 0.8)'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: '"Poppins", sans-serif',
+                                    size: 11
+                                },
+                                color: 'rgba(107, 114, 128, 0.8)',
+                                padding: 8,
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.4
+                        }
+                    }
+                }
+            });
+
+            // Variables
+            let currentSymbol = 'AAPL';
+            let autoRefresh = true;
+            let refreshInterval;
+            let refreshTime = 5000; // 5 seconds
+            let watchlist = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'JPM', 'V', 'WMT', 'DIS', 'NFLX', 'KO', 'PEP', 'INFY'];
+            let currentTimeRange = '1h';
+
+            // Initialize
+            fetchStockData(currentSymbol);
+            startAutoRefresh();
+            updateAllWatchlistItems();
+
+            // Event Listeners
+            searchButton.addEventListener('click', handleSearch);
+            stockSearch.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+
+            refreshToggle.addEventListener('click', toggleAutoRefresh);
+            refreshNow.addEventListener('click', function() {
+                fetchStockData(currentSymbol);
+            });
+
+            addToWatchlist.addEventListener('click', function() {
+                if (!watchlist.includes(currentSymbol)) {
+                    watchlist.push(currentSymbol);
+                    updateWatchlist();
+                }
+            });
+
+            // Delegate event for watchlist item clicks
+            watchlistContainer.addEventListener('click', function(e) {
+                const stockCard = e.target.closest('.stock-card');
+                const removeBtn = e.target.closest('.remove-watchlist');
+                
+                if (removeBtn) {
+                    e.stopPropagation();
+                    const symbol = stockCard.dataset.symbol;
+                    watchlist = watchlist.filter(item => item !== symbol);
+                    stockCard.remove();
+                } else if (stockCard) {
+                    const symbol = stockCard.dataset.symbol;
+                    currentSymbol = symbol;
+                    fetchStockData(symbol);
+                }
+            });
+
+            // Time range buttons
+            timeRangeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    timeRangeButtons.forEach(btn => {
+                        btn.classList.remove('bg-blue-600', 'text-white');
+                        btn.classList.add('bg-blue-100', 'text-blue-700');
+                    });
+                    this.classList.remove('bg-blue-100', 'text-blue-700');
+                    this.classList.add('bg-blue-600', 'text-white');
+                    
+                    currentTimeRange = this.dataset.range;
+                    updateChartData(currentTimeRange);
+                });
+            });
+
+            // Functions
+            function handleSearch() {
+                const symbol = stockSearch.value.trim().toUpperCase();
+                if (symbol) {
+                    currentSymbol = symbol;
+                    fetchStockData(symbol);
+                }
+            }
+
+            function toggleAutoRefresh() {
+                autoRefresh = !autoRefresh;
+                if (autoRefresh) {
+                    refreshStatus.textContent = 'ON';
+                    refreshStatus.classList.remove('text-red-600');
+                    refreshStatus.classList.add('text-blue-600');
+                    refreshToggle.textContent = 'Turn Off';
+                    startAutoRefresh();
+                } else {
+                    refreshStatus.textContent = 'OFF';
+                    refreshStatus.classList.remove('text-blue-600');
+                    refreshStatus.classList.add('text-red-600');
+                    refreshToggle.textContent = 'Turn On';
+                    clearInterval(refreshInterval);
+                }
+            }
+
+            function startAutoRefresh() {
+                clearInterval(refreshInterval);
+                refreshInterval = setInterval(() => {
+                    if (autoRefresh) {
+                        fetchStockData(currentSymbol, false);
+                    }
+                }, refreshTime);
+            }
+
+            function fetchStockData(symbol, showLoading = true) {
+                if (showLoading) {
+                    loadingMessage.classList.remove('hidden');
+                    stockContent.classList.add('hidden');
+                    errorMessage.classList.add('hidden');
+                } else {
+                    // Show chart loading overlay for refresh
+                    chartLoading.classList.remove('hidden');
+                }
+
+                // In a real app, we would fetch from a real API
+                // For this demo, we'll simulate the API response
+                setTimeout(() => {
+                    try {
+                        const data = generateMockStockData(symbol);
+                        updateStockUI(data);
+                        updateChartData(currentTimeRange);
+                        
+                        if (showLoading) {
+                            loadingMessage.classList.add('hidden');
+                            stockContent.classList.remove('hidden');
+                            
+                            // Add entrance animations
+                            stockContent.classList.add('animate__animated', 'animate__fadeIn');
+                            setTimeout(() => {
+                                stockContent.classList.remove('animate__animated', 'animate__fadeIn');
+                            }, 1000);
+                        } else {
+                            // Hide chart loading overlay
+                            chartLoading.classList.add('hidden');
+                        }
+                        
+                        // Flash the price to indicate update
+                        currentPrice.classList.add('animate__animated', 'animate__flash', 'animate__faster');
+                        setTimeout(() => {
+                            currentPrice.classList.remove('animate__animated', 'animate__flash', 'animate__faster');
+                        }, 1000);
+                        
+                    } catch (error) {
+                        loadingMessage.classList.add('hidden');
+                        chartLoading.classList.add('hidden');
+                        errorMessage.classList.remove('hidden');
+                        errorText.textContent = `Error fetching data for ${symbol}: ${error.message}`;
+                    }
+                }, showLoading ? 1000 : 400);
+            }
+
+            function updateStockUI(data) {
+                stockName.textContent = `${data.companyName} (${data.symbol})`;
+                lastUpdated.textContent = new Date().toLocaleTimeString();
+                
+                currentPrice.textContent = `$${data.price.toFixed(2)}`;
+                
+                const changeValue = data.change.toFixed(2);
+                const changePercent = data.changePercent.toFixed(2);
+                
+                priceChange.textContent = `$${Math.abs(changeValue)}`;
+                percentChange.textContent = `${changePercent}%`;
+                
+                if (data.change >= 0) {
+                    priceChange.classList.remove('negative');
+                    priceChange.classList.add('positive');
+                    percentChange.classList.remove('bg-red-100', 'text-red-700');
+                    percentChange.classList.add('bg-green-100', 'text-green-700');
+                    priceChange.textContent = `+$${Math.abs(changeValue)}`;
+                } else {
+                    priceChange.classList.remove('positive');
+                    priceChange.classList.add('negative');
+                    percentChange.classList.remove('bg-green-100', 'text-green-700');
+                    percentChange.classList.add('bg-red-100', 'text-red-700');
+                    priceChange.textContent = `-$${Math.abs(changeValue)}`;
+                }
+                
+                dayRange.textContent = `$${data.low.toFixed(2)} - $${data.high.toFixed(2)}`;
+                volume.textContent = formatNumber(data.volume);
+                marketCap.textContent = formatMarketCap(data.marketCap);
+            }
+
+            function updateChartData(timeRange) {
+                // Show loading overlay
+                chartLoading.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    const chartData = generateChartData(currentSymbol, timeRange);
+                    
+                    stockChart.data.labels = chartData.labels;
+                    stockChart.data.datasets[0].data = chartData.prices;
+                    
+                    // Update chart color based on price trend
+                    const firstPrice = chartData.prices[0];
+                    const lastPrice = chartData.prices[chartData.prices.length - 1];
+                    const priceChange = lastPrice - firstPrice;
+                    
+                    if (priceChange >= 0) {
+                        stockChart.data.datasets[0].borderColor = 'rgb(16, 185, 129)';
+                        stockChart.data.datasets[0].backgroundColor = createGradient('green');
+                        
+                        // Update the range indicator color
+                        document.querySelector('.absolute.left-0.top-0.h-full').classList.remove('bg-gradient-to-r', 'from-indigo-400', 'to-indigo-600');
+                        document.querySelector('.absolute.left-0.top-0.h-full').classList.add('bg-gradient-to-r', 'from-green-400', 'to-green-600');
+                    } else {
+                        stockChart.data.datasets[0].borderColor = 'rgb(239, 68, 68)';
+                        stockChart.data.datasets[0].backgroundColor = createGradient('red');
+                        
+                        // Update the range indicator color
+                        document.querySelector('.absolute.left-0.top-0.h-full').classList.remove('bg-gradient-to-r', 'from-indigo-400', 'to-indigo-600');
+                        document.querySelector('.absolute.left-0.top-0.h-full').classList.add('bg-gradient-to-r', 'from-red-400', 'to-red-600');
+                    }
+                    
+                    // Hide loading overlay
+                    chartLoading.classList.add('hidden');
+                    
+                    // Update chart with animation
+                    stockChart.update({
+                        duration: 800,
+                        easing: 'easeOutQuart'
+                    });
+                }, 300);
+            }
+
+            function updateWatchlist() {
+                // In a real app, we would fetch current data for all watchlist items
+                // For this demo, we'll just update the UI with mock data
+                const stockData = generateMockStockData(currentSymbol);
+                
+                const stockCard = document.createElement('div');
+                stockCard.className = 'stock-card bg-white rounded-xl shadow-md p-4 cursor-pointer';
+                stockCard.dataset.symbol = currentSymbol;
+                
+                const changeClass = stockData.change >= 0 ? 'positive' : 'negative';
+                const changePrefix = stockData.change >= 0 ? '+' : '';
+                
+                stockCard.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${stockData.companyName}</h4>
+                            <p class="text-sm text-gray-500">${stockData.symbol}</p>
+                        </div>
+                        <button class="remove-watchlist text-gray-400 hover:text-red-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="mt-3 flex justify-between items-end">
+                        <span class="text-lg font-bold">$${stockData.price.toFixed(2)}</span>
+                        <span class="text-sm font-medium ${changeClass}">${changePrefix}${stockData.change.toFixed(2)} (${stockData.changePercent.toFixed(2)}%)</span>
+                    </div>
+                `;
+                
+                watchlistContainer.appendChild(stockCard);
+            }
+
+            function updateAllWatchlistItems() {
+                watchlistContainer.innerHTML = '';
+                watchlist.forEach(symbol => {
+                    const stockData = generateMockStockData(symbol);
+                    
+                    const stockCard = document.createElement('div');
+                    stockCard.className = 'stock-card bg-white rounded-xl shadow-md p-4 cursor-pointer';
+                    stockCard.dataset.symbol = symbol;
+                    
+                    const changeClass = stockData.change >= 0 ? 'positive' : 'negative';
+                    const changePrefix = stockData.change >= 0 ? '+' : '';
+                    
+                    stockCard.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-semibold text-gray-800">${stockData.companyName}</h4>
+                                <p class="text-sm text-gray-500">${symbol}</p>
+                            </div>
+                            <button class="remove-watchlist text-gray-400 hover:text-red-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="mt-3 flex justify-between items-end">
+                            <span class="text-lg font-bold">$${stockData.price.toFixed(2)}</span>
+                            <span class="text-sm font-medium ${changeClass}">${changePrefix}${stockData.change.toFixed(2)} (${stockData.changePercent.toFixed(2)}%)</span>
+                        </div>
+                    `;
+                    
+                    watchlistContainer.appendChild(stockCard);
+                });
+            }
+
+            // Helper functions
+            function formatNumber(num) {
+                return new Intl.NumberFormat().format(num);
+            }
+
+            function formatMarketCap(marketCap) {
+                if (marketCap >= 1e12) {
+                    return `$${(marketCap / 1e12).toFixed(2)}T`;
+                } else if (marketCap >= 1e9) {
+                    return `$${(marketCap / 1e9).toFixed(2)}B`;
+                } else if (marketCap >= 1e6) {
+                    return `$${(marketCap / 1e6).toFixed(2)}M`;
+                } else {
+                    return `$${marketCap.toFixed(2)}`;
+                }
+            }
+
+            // Mock data generators
+            function generateMockStockData(symbol) {
+                const stockInfo = {
+                    'AAPL': { name: 'Apple Inc.', basePrice: 175, marketCap: 2.8e12, volume: 58000000 },
+                    'MSFT': { name: 'Microsoft Corporation', basePrice: 415, marketCap: 3.1e12, volume: 25000000 },
+                    'GOOGL': { name: 'Alphabet Inc.', basePrice: 142, marketCap: 1.8e12, volume: 30000000 },
+                    'AMZN': { name: 'Amazon.com Inc.', basePrice: 178, marketCap: 1.85e12, volume: 40000000 },
+                    'TSLA': { name: 'Tesla Inc.', basePrice: 240, marketCap: 7.6e11, volume: 120000000 },
+                    'META': { name: 'Meta Platforms Inc.', basePrice: 325, marketCap: 8.4e11, volume: 22000000 },
+                    'NVDA': { name: 'NVIDIA Corporation', basePrice: 480, marketCap: 1.2e12, volume: 45000000 },
+                    'JPM': { name: 'JPMorgan Chase & Co.', basePrice: 152, marketCap: 4.4e11, volume: 12000000 },
+                    'V': { name: 'Visa Inc.', basePrice: 265, marketCap: 5.5e11, volume: 8000000 },
+                    'WMT': { name: 'Walmart Inc.', basePrice: 62, marketCap: 5.0e11, volume: 10000000 },
+                    'DIS': { name: 'The Walt Disney Company', basePrice: 95, marketCap: 1.7e11, volume: 15000000 },
+                    'NFLX': { name: 'Netflix Inc.', basePrice: 485, marketCap: 2.1e11, volume: 7000000 },
+                    'KO': { name: 'The Coca-Cola Company', basePrice: 58, marketCap: 2.5e11, volume: 14000000 },
+                    'PEP': { name: 'PepsiCo Inc.', basePrice: 168, marketCap: 2.3e11, volume: 5000000 },
+                    'INFY': { name: 'Infosys Limited', basePrice: 18, marketCap: 7.5e10, volume: 8000000 },
+                    'ADBE': { name: 'Adobe Inc.', basePrice: 560, marketCap: 2.5e11, volume: 3500000 },
+                    'INTC': { name: 'Intel Corporation', basePrice: 42, marketCap: 1.8e11, volume: 42000000 },
+                    'IBM': { name: 'International Business Machines', basePrice: 145, marketCap: 1.3e11, volume: 5500000 },
+                    'BA': { name: 'Boeing Co.', basePrice: 210, marketCap: 1.3e11, volume: 9000000 },
+                    'NKE': { name: 'Nike Inc.', basePrice: 105, marketCap: 1.6e11, volume: 8500000 }
+                };
+
+                // Default values for unknown symbols
+                const info = stockInfo[symbol] || { 
+                    name: `${symbol} Inc.`, 
+                    basePrice: 100 + Math.random() * 200, 
+                    marketCap: 1e10 + Math.random() * 1e11, 
+                    volume: 1000000 + Math.random() * 10000000 
+                };
+
+                // Generate random price fluctuation
+                const randomFactor = 0.02; // 2% max fluctuation
+                const priceChange = info.basePrice * (Math.random() * randomFactor * 2 - randomFactor);
+                const price = info.basePrice + priceChange;
+                const changePercent = (priceChange / info.basePrice) * 100;
+
+                return {
+                    symbol: symbol,
+                    companyName: info.name,
+                    price: price,
+                    change: priceChange,
+                    changePercent: changePercent,
+                    high: price * (1 + Math.random() * 0.01),
+                    low: price * (1 - Math.random() * 0.01),
+                    volume: info.volume,
+                    marketCap: info.marketCap
+                };
+            }
+
+            function generateChartData(symbol, timeRange) {
+                const now = new Date();
+                const labels = [];
+                const prices = [];
+                let dataPoints;
+                let timeFormat;
+                let basePrice;
+
+                switch (timeRange) {
+                    case '1h':
+                        dataPoints = 60;
+                        timeFormat = 'HH:mm';
+                        basePrice = generateMockStockData(symbol).price;
+                        
+                        for (let i = dataPoints; i >= 0; i--) {
+                            const time = new Date(now - i * 60000);
+                            labels.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                            
+                            // Small random fluctuations for 1-hour view
+                            const randomFactor = 0.001; // 0.1% max fluctuation per minute
+                            const fluctuation = basePrice * (Math.random() * randomFactor * 2 - randomFactor);
+                            basePrice += fluctuation;
+                            prices.push(basePrice);
+                        }
+                        break;
+                        
+                    case '1d':
+                        dataPoints = 24;
+                        timeFormat = 'HH:mm';
+                        basePrice = generateMockStockData(symbol).price;
+                        
+                        for (let i = dataPoints; i >= 0; i--) {
+                            const time = new Date(now - i * 3600000);
+                            labels.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                            
+                            // Larger fluctuations for daily view
+                            const randomFactor = 0.005; // 0.5% max fluctuation per hour
+                            const fluctuation = basePrice * (Math.random() * randomFactor * 2 - randomFactor);
+                            basePrice += fluctuation;
+                            prices.push(basePrice);
+                        }
+                        break;
+                        
+                    case '1w':
+                        dataPoints = 7;
+                        basePrice = generateMockStockData(symbol).price;
+                        
+                        for (let i = dataPoints; i >= 0; i--) {
+                            const time = new Date(now - i * 86400000);
+                            labels.push(time.toLocaleDateString([], { month: 'short', day: 'numeric' }));
+                            
+                            // Even larger fluctuations for weekly view
+                            const randomFactor = 0.01; // 1% max fluctuation per day
+                            const fluctuation = basePrice * (Math.random() * randomFactor * 2 - randomFactor);
+                            basePrice += fluctuation;
+                            prices.push(basePrice);
+                        }
+                        break;
+                        
+                    case '1m':
+                        dataPoints = 30;
+                        basePrice = generateMockStockData(symbol).price;
+                        
+                        for (let i = dataPoints; i >= 0; i--) {
+                            const time = new Date(now - i * 86400000);
+                            labels.push(time.toLocaleDateString([], { month: 'short', day: 'numeric' }));
+                            
+                            // Largest fluctuations for monthly view
+                            const randomFactor = 0.015; // 1.5% max fluctuation per day
+                            const fluctuation = basePrice * (Math.random() * randomFactor * 2 - randomFactor);
+                            basePrice += fluctuation;
+                            prices.push(basePrice);
+                        }
+                        break;
+                }
+
+                return { labels, prices };
+            }
+        });
+    </script>
+</body>
+</html>
